@@ -1,7 +1,10 @@
 import express from 'express';
 import bodyparser from 'body-parser';
+import bcrypt from 'bcrypt';
 
 const app=express();
+
+const saltRounds=10;
 
 const database={
     user:[
@@ -9,7 +12,7 @@ const database={
             name:'yash',
             id:'01',
             email:'yashhanda500@gmail.com',
-            password:'yashhhh',
+            password:bcrypt.hashSync('yashhhh', saltRounds),
             enteries:0,
             joined:new Date()
         },
@@ -17,7 +20,7 @@ const database={
             name:'rahul',
             id:'02',
             email:'rahul500@gmail.com',
-            password:'rahulllllll',
+            password:bcrypt.hashSync('rahulllllll', saltRounds),
             enteries:0,
             joined:new Date()
         }
@@ -30,10 +33,13 @@ app.get('/',(req,res)=>{
     res.send('working file!!!');
 });
 
+
+
 app.post('/signin',(req,res)=>{
     // res.json('signing in');
+    // bcrypt.compareSync(myPlaintextPassword, hash);
     if(req.body.email===database.user[0].email &&
-        req.body.password===database.user[0].password)
+bcrypt.compareSync(req.body.password, database.user[0].password))
         res.json('found');
         else
         res.json('not found');
@@ -41,11 +47,12 @@ app.post('/signin',(req,res)=>{
 
 app.post('/register',(req,res)=>{
     let a=req.body;
+    const hash = bcrypt.hashSync(a.password, saltRounds);
     database.user.push({
         name:a.name,
         id:database.user.length+1,
         email:a.email,
-        password:a.password,
+        password:hash,
         enteries:0,
         joined:new Date()
     });
