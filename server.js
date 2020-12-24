@@ -61,19 +61,34 @@ bcrypt.compareSync(req.body.password, database.user[0].password))
 });
 
 app.post('/register',(req,res)=>{
+   
+  
+    // res.json('added to database');
     let a=req.body;
     const hash = bcrypt.hashSync(a.password, saltRounds);
-   db('users')
-   .returning('*')
-   .insert({
-       email:a.email,
-       name:a.name,
-       joined: new Date()
-   }).then(user=>{
-       res.json(user[0]);
-   }).catch (err=>res.status(404).json(err));
-    // res.json('added to database');
-    
+
+  db.transaction(trx=>{
+      trx.insert({
+          hash:hash, email:email
+      })
+      .into('login')
+      .returning('email')
+      .then(loginemail=>{
+          return trx('users')
+          .returning('*')
+          .insert({
+              email:loginemail,
+              name:a.name,
+              joined: new Date()
+          })
+          .then(user=>{
+              res.json(user[0]);
+          })
+      })
+      .then(trx.commit)
+      .catch(trx.rollback)
+  })
+   .catch(err=>res.status(400).json('unable to register')) 
 });
 
 app.get('/profile/:id',(req,res)=>{
