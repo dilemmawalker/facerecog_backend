@@ -1,8 +1,24 @@
 import express from 'express';
 import bodyparser from 'body-parser';
 import bcrypt from 'bcrypt';
+import cors from 'cors';
+import kne from 'knex';
+var db = kne({
+    client: 'pg',
+    connection: {
+      host : '127.0.0.1',
+      user : 'postgres',
+      password : 'test',
+      database : 'simplefolio'
+    }
+  });
+
+  db.select('*').from('users').then(data=>{
+      console.log(data);
+  });
 
 const app=express();
+app.use(cors())
 
 const saltRounds=10;
 
@@ -26,13 +42,12 @@ const database={
         }
     ]
 }
-app.use(bodyparser.json());3
+app.use(bodyparser.json());
 
 
 app.get('/',(req,res)=>{
-    res.send('working file!!!');
+    res.send(database.user);    
 });
-
 
 
 app.post('/signin',(req,res)=>{
@@ -40,7 +55,7 @@ app.post('/signin',(req,res)=>{
     // bcrypt.compareSync(myPlaintextPassword, hash);
     if(req.body.email===database.user[0].email &&
 bcrypt.compareSync(req.body.password, database.user[0].password))
-        res.json('found');
+        res.json('success');
         else
         res.json('not found');
 });
@@ -48,45 +63,39 @@ bcrypt.compareSync(req.body.password, database.user[0].password))
 app.post('/register',(req,res)=>{
     let a=req.body;
     const hash = bcrypt.hashSync(a.password, saltRounds);
-    database.user.push({
-        name:a.name,
-        id:database.user.length+1,
-        email:a.email,
-        password:hash,
-        enteries:0,
-        joined:new Date()
-    });
+   db('users')
+   .returning('*')
+   .insert({
+       email:a.email,
+       name:a.name,
+       joined: new Date()
+   }).then(user=>{
+       res.json(user[0]);
+   }).catch (err=>res.status(404).json(err));
     // res.json('added to database');
-    res.json(database.user[database.user.length-1]);
+    
 });
 
-app.get('/signin/:id',(req,res)=>{
+app.get('/profile/:id',(req,res)=>{
     let {id}=req.params;
-        let flag=false;
-        database.user.map((use,idx)=>{
-            if(use.id==id){
-                flag=true;
-            return res.json(use);
-            }
-        });
-        if(!flag)
-        res.json('not found');
+        const aa=db.select('*').from('users').where({
+            id:id
+        })
+        .then(user=>{
+            res.json(user[0]);
+        })
 });
 
 app.put('/image',(req,res)=>{
     let {id}=req.body;
-    let flag=false;
-    database.user.map((use,idx)=>{
-        if(use.id==id){
-            flag=true;
-            use.enteries++;
-        return res.json(use);
-        }
-    });
-    if(!flag)
-    res.json('not found');
+  db('users').where({id:id})
+  .increment('enteries',1)
+  .returning('enteries')
+  .then(enteries=>{
+      res.json(enteries[0])
+  })
 });
 
 app.listen(3000,()=>{
     console.log('running');
-}); 
+});
