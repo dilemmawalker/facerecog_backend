@@ -78,6 +78,9 @@ app.post('/register',(req,res)=>{
     let a=req.body;
     const hash = bcrypt.hashSync(a.password, saltRounds);
 
+    if(!a.email || !a.password || !a.name)
+    return res.json('incorrect form submission');
+
   db.transaction(trx=>{
       trx.insert({
           hash:hash, email:a.email
@@ -122,6 +125,6 @@ app.put('/image',(req,res)=>{
   })
 });
 
-app.listen(3000,()=>{
+app.listen(process.env.PORT || 3000,()=>{
     console.log('running');
 });
