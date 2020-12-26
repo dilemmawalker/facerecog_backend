@@ -22,26 +22,26 @@ app.use(cors())
 
 const saltRounds=10;
 
-const database={
-    user:[
-        {
-            name:'yash',
-            id:'01',
-            email:'yashhanda500@gmail.com',
-            password:bcrypt.hashSync('yashhhh', saltRounds),
-            enteries:0,
-            joined:new Date()
-        },
-        {
-            name:'rahul',
-            id:'02',
-            email:'rahul500@gmail.com',
-            password:bcrypt.hashSync('rahulllllll', saltRounds),
-            enteries:0,
-            joined:new Date()
-        }
-    ]
-}
+// const database={
+//     user:[
+//         {
+//             name:'yash',
+//             id:'01',
+//             email:'yashhanda500@gmail.com',
+//             password:bcrypt.hashSync('yashhhh', saltRounds),
+//             enteries:0,
+//             joined:new Date()
+//         },
+//         {
+//             name:'rahul',
+//             id:'02',
+//             email:'rahul500@gmail.com',
+//             password:bcrypt.hashSync('rahulllllll', saltRounds),
+//             enteries:0,
+//             joined:new Date()
+//         }
+//     ]
+// }
 app.use(bodyparser.json());
 
 
@@ -50,15 +50,26 @@ app.get('/',(req,res)=>{
 });
 
 
-app.post('/signin',(req,res)=>{
-    // res.json('signing in');
-    // bcrypt.compareSync(myPlaintextPassword, hash);
-    if(req.body.email===database.user[0].email &&
-bcrypt.compareSync(req.body.password, database.user[0].password))
-        res.json('success');
-        else
-        res.json('not found');
-});
+app.post('/signin', (req, res) => {
+    db.select('email', 'hash').from('login')
+      .where('email', '=', req.body.email)
+      .then(data => {
+        const isValid = bcrypt.compareSync(req.body.password, data[0].hash);
+        console.log(isValid);
+        if (isValid) {
+          return db.select('*').from('users')
+            .where('email', '=', req.body.email)
+            .then(users => {
+                console.log(users)
+              res.json(users[0])
+            })
+            .catch(err => res.status(400).json('unable to get user'))
+        } else {
+          res.status(400).json('wrong password/email')
+        }
+      })
+      .catch(err => res.status(400).json('wrong credentials'))
+  })
 
 app.post('/register',(req,res)=>{
    
@@ -69,7 +80,7 @@ app.post('/register',(req,res)=>{
 
   db.transaction(trx=>{
       trx.insert({
-          hash:hash, email:email
+          hash:hash, email:a.email
       })
       .into('login')
       .returning('email')
@@ -77,7 +88,7 @@ app.post('/register',(req,res)=>{
           return trx('users')
           .returning('*')
           .insert({
-              email:loginemail,
+              email:loginemail[0],         //loginemail[0]
               name:a.name,
               joined: new Date()
           })
