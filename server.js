@@ -46,7 +46,7 @@ app.use(bodyparser.json());
 
 
 app.get('/',(req,res)=>{
-    res.send(database.user);    
+    res.send('it is working');    
 });
 
 
